@@ -1,0 +1,57 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Transforms images by rotating a configured degree
+Parameters:
+  backgroundColor:
+    Default: '#000000'
+    Description: Background color to fill in (#RRGGBB)
+    Type: String
+  destBucket:
+    Description: Name of the S3 Bucket to put transformed images into (must exist
+      prior to deployment)
+    Type: String
+  rotateDegrees:
+    Default: 10
+    Description: Number of degrees to rotate clockwise
+    Type: Number
+  sourceBucket:
+    Description: Name of the S3 Bucket to read source images from (must NOT exist
+      prior to deployment)
+    Type: String
+Resources:
+  source:
+    Properties:
+      BucketName:
+        Ref: sourceBucket
+    Type: AWS::S3::Bucket
+  transform:
+    Properties:
+      CodeUri: s3://sar-demo/47c6c75c100c5f5791b1b1985665ddad
+      Description: Transforms images by rotating a configured degree
+      Environment:
+        Variables:
+          BACKGROUND_COLOR:
+            Ref: backgroundColor
+          DEST_BUCKET:
+            Ref: destBucket
+          ROTATE_DEGREES:
+            Ref: rotateDegrees
+      Events:
+        upload:
+          Properties:
+            Bucket:
+              Ref: source
+            Events: s3:ObjectCreated:*
+          Type: S3
+      Handler: src/index.handler
+      MemorySize: 1536
+      Policies:
+      - S3ReadPolicy:
+          BucketName:
+            Ref: sourceBucket
+      - S3CrudPolicy:
+          BucketName:
+            Ref: destBucket
+      Runtime: nodejs6.10
+      Timeout: 300
+    Type: AWS::Serverless::Function
+Transform: AWS::Serverless-2016-10-31
